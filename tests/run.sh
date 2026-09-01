@@ -578,8 +578,8 @@ else not_ok "dry run records no state"; fi
 rm -rf "$root"; mkdir -p "$(dirname "$target")"
 out=$(FOXPRIVACY_STATE_DIR=/proc/nope/foxprivacy "$INSTALLER" --profile standard 2>&1)
 check "an install that cannot record itself fails" "1" "$?"
-[ ! -f "$target" ] && ok "and leaves no policy file behind" ||
-  not_ok "and leaves no policy file behind" "a half-installed machine: $out"
+if [ ! -f "$target" ]; then ok "and leaves no policy file behind"
+else not_ok "and leaves no policy file behind" "a half-installed machine: $out"; fi
 
 # The same, with something already there: it must come back.
 rm -rf "$root"; mkdir -p "$(dirname "$target")"
@@ -596,10 +596,10 @@ printf '%s\n' '{"policies":{"DisableDeveloperTools":true}}' > "$target"
 printf 'garbage\n' > "$state"
 "$INSTALLER" --uninstall >/dev/null 2>&1
 check "uninstall refuses an unreadable record" "1" "$?"
-[ -f "$state" ] && ok "and keeps the record instead of deleting it" ||
-  not_ok "and keeps the record instead of deleting it"
-[ -f "$target" ] && ok "and leaves the policy file alone" ||
-  not_ok "and leaves the policy file alone"
+if [ -f "$state" ]; then ok "and keeps the record instead of deleting it"
+else not_ok "and keeps the record instead of deleting it"; fi
+if [ -f "$target" ]; then ok "and leaves the policy file alone"
+else not_ok "and leaves the policy file alone"; fi
 "$INSTALLER" --verify >/dev/null 2>&1
 check "verify refuses an unreadable record" "1" "$?"
 
