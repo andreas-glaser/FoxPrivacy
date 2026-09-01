@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security or privacy vulnerability
+    url: https://github.com/andreas-glaser/foxprivacy/security/advisories/new
+    about: Report privately. Do not open a public issue. See SECURITY.md.
+  - name: Firefox bug
+    url: https://bugzilla.mozilla.org/
+    about: Bugs in Firefox itself belong to Mozilla, not to this project.

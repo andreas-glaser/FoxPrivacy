@@ -1,0 +1,26 @@
+# Backups written by the installer during local testing
+*.bak
+*.foxprivacy-backup-*
+
+# Build and release output
+/dist/
+/build/
+*.tar.gz
+*.zip
+SHA256SUMS
+
+# Local scratch
+/tmp/
+/.scratch/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Agent tooling. Local to each contributor's machine, never part of the project.
+# .git/info/exclude covers this repository too, but that file is local and does
+# not travel with a clone, so it is stated here as well.
+/AGENTS.md
+/CLAUDE.md
+/.agents/
+/.claude/

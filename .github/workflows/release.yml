@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release, for example v1.0.0'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify before releasing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+      - name: Install additional awk implementations
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gawk mawk busybox original-awk
+      - name: Run the test suite
+        run: tests/run.sh
+
+      # A release whose version strings disagree ships an installer that
+      # misreports itself, so this is a hard gate rather than a warning.
+      - name: Versions and changelog must agree with the tag
+        run: |
+          set -eu
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          version="${tag#v}"
+          file_version=$(cat VERSION)
+          sh_version=$(sed -n 's/^FOXPRIVACY_VERSION="\(.*\)"$/\1/p' install/foxprivacy.sh)
+          ps_version=$(sed -n "s/^\$FoxPrivacyVersion = '\(.*\)'$/\1/p" install/foxprivacy.ps1)
+
+          echo "tag=$version VERSION=$file_version sh=$sh_version ps1=$ps_version"
+          test "$version" = "$file_version" || { echo "VERSION does not match the tag"; exit 1; }
+          test "$version" = "$sh_version"   || { echo "foxprivacy.sh version does not match"; exit 1; }
+          test "$version" = "$ps_version"   || { echo "foxprivacy.ps1 version does not match"; exit 1; }
+          grep -q "^## \[$version\]" CHANGELOG.md || {
+            echo "CHANGELOG.md has no '## [$version]' section"; exit 1; }
+
+  release:
+    name: Build and publish
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+
+      - name: Build artefacts
+        run: |
+          set -eu
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          name="foxprivacy-$tag"
+          tools/build-dist.sh
+
+          mkdir -p "build/$name"
+          cp -r install policies tools docs tests "build/$name/"
+          cp README.md LICENSE CHANGELOG.md VERSION SECURITY.md CONTRIBUTING.md "build/$name/"
+
+          mkdir -p out
+          tar -czf "out/$name.tar.gz" -C build "$name"
+          (cd build && zip -rq "../out/$name.zip" "$name")
+
+          # The single file downloads are what the documented one liner fetches.
+          cp dist/foxprivacy.sh out/foxprivacy.sh
+          cp dist/foxprivacy.ps1 out/foxprivacy.ps1
+
+          # Named explicitly rather than globbed: a glob would race with the
+          # creation of SHA256SUMS itself.
+          cd out
+          sha256sum "$name.tar.gz" "$name.zip" foxprivacy.sh foxprivacy.ps1 > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Extract the changelog entry for this version
+        run: |
+          set -eu
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          version="${tag#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { inside = 1; next }
+            inside && /^## \[/ { exit }
+            inside { print }
+          ' CHANGELOG.md > notes.md
+          {
+            echo
+            echo "## Verify your download"
+            echo
+            echo '```sh'
+            echo "sha256sum -c SHA256SUMS      # shasum -a 256 -c SHA256SUMS on macOS"
+            echo '```'
+          } >> notes.md
+          cat notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          prerelease=""
+          case "$tag" in *-rc.*) prerelease="--prerelease" ;; esac
+          gh release create "$tag" out/* \
+            --title "$tag" \
+            --notes-file notes.md \
+            $prerelease

@@ -1,0 +1,88 @@
+name: Bug report
+description: Something in FoxPrivacy does not work
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a setting changed your browser in a way you did not expect, that is a
+        bug and worth reporting. If the installer left your machine in a state
+        you cannot undo, say so at the top and it will be treated as urgent.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Ran ./install/foxprivacy.sh --profile standard
+        2. Restarted Firefox
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: foxprivacy-version
+    attributes:
+      label: FoxPrivacy version
+      description: Output of `./install/foxprivacy.sh --version`, or the git commit.
+    validations:
+      required: true
+
+  - type: input
+    id: firefox-version
+    attributes:
+      label: Firefox version
+      description: From about:support.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: How Firefox was installed
+      description: This changes where policies live, so it is usually the answer.
+      options:
+        - Linux - distro package (deb/rpm)
+        - Linux - snap
+        - Linux - flatpak
+        - Linux - Mozilla tarball
+        - macOS - Mozilla dmg
+        - macOS - Homebrew
+        - Windows - Mozilla installer
+        - Windows - winget/chocolatey
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and version
+      placeholder: Ubuntu 24.04, macOS 15.2, Windows 11 23H2
+    validations:
+      required: true
+
+  - type: textarea
+    id: about-policies
+    attributes:
+      label: about:policies Errors tab
+      description: >
+        Open about:policies in Firefox and paste anything on the Errors tab.
+        Write "empty" if there is nothing. This is usually the deciding clue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Installer output
+      description: Paste the output, ideally from a `--dry-run` as well.
+      render: shell

@@ -1,0 +1,3 @@
+# LF everywhere. A CRLF checkout breaks the shell installer outright, and the
+# JSON fixtures are compared byte for byte across Linux, macOS and Windows.
+* text=auto eol=lf

@@ -1,0 +1,81 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "FirefoxHome": {
+      "SponsoredTopSites": false,
+      "SponsoredStories": false,
+      "Snippets": false,
+      "Stories": false
+    },
+    "FirefoxSuggest": {
+      "WebSuggestions": false,
+      "SponsoredSuggestions": false,
+      "ImproveSuggest": false
+    },
+    "UserMessaging": {
+      "WhatsNew": false,
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "UrlbarInterventions": false,
+      "MoreFromMozilla": false,
+      "FirefoxLabs": false,
+      "SkipOnboarding": true
+    },
+    "SkipTermsOfUse": true,
+    "DisableFeedbackCommands": true,
+    "DisableDefaultBrowserAgent": true,
+    "GenerativeAI": {
+      "Chatbot": false,
+      "LinkPreviews": false,
+      "TabGroups": false,
+      "SmartWindow": false,
+      "Locked": false
+    },
+    "NetworkPrediction": false,
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Cryptomining": true,
+      "Fingerprinting": true,
+      "EmailTracking": true,
+      "Locked": false
+    },
+    "SearchSuggestEnabled": false,
+    "DisableRemoteImprovements": true,
+    "VisualSearchEnabled": false,
+    "Preferences": {
+      "browser.crashReports.unsubmittedCheck.enabled": {
+        "Value": false,
+        "Status": "default"
+      },
+      "browser.crashReports.unsubmittedCheck.autoSubmit2": {
+        "Value": false,
+        "Status": "default"
+      },
+      "network.prefetch-next": {
+        "Value": false,
+        "Status": "default"
+      },
+      "privacy.globalprivacycontrol.enabled": {
+        "Value": true,
+        "Status": "default"
+      },
+      "browser.urlbar.suggest.trending": {
+        "Value": false,
+        "Status": "default"
+      },
+      "browser.urlbar.trending.featureGate": {
+        "Value": false,
+        "Status": "default"
+      },
+      "browser.urlbar.speculativeConnect.enabled": {
+        "Value": false,
+        "Status": "default"
+      },
+      "browser.fixup.alternate.enabled": {
+        "Value": false,
+        "Status": "default"
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+name: Policy proposal
+description: Propose turning something on or off in the shipped configuration
+labels: ["policy"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Policy changes alter what a browser does on every machine that runs the
+        installer, so they get discussed before they get written. Please read
+        the non-goals in docs/VISION.md first: this project is not a hardening
+        suite, will not install extensions, and will not pick a DNS resolver.
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should change
+      description: The setting, and what a user would notice.
+    validations:
+      required: true
+
+  - type: input
+    id: policy-name
+    attributes:
+      label: Policy or preference name
+      description: >
+        The policy key from Firefox's schema, or the preference name if no
+        policy exists. A key that is not in the schema is silently ignored by
+        Firefox, so please check first.
+      placeholder: DisableFirefoxStudies, or browser.ml.chat.enabled
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: What data collection or nagging this removes
+      description: Be specific. "It is more private" is not enough to act on.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cost
+    attributes:
+      label: What it costs the user
+      description: >
+        What breaks or gets more annoying. Answering "nothing" is fine if it is
+        true, but a setting with no cost that Firefox still ships on by default
+        usually has one that is not obvious yet.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Which profile
+      description: >
+        Anything with a real usability cost belongs in strict, not standard.
+      options:
+        - standard - unnoticeable except for the absent ads
+        - strict - has a documented cost, user opts in
+    validations:
+      required: true
+
+  - type: textarea
+    id: tested
+    attributes:
+      label: Have you tested it
+      description: >
+        Optional but very helpful. If you set it in a real Firefox, say which
+        version, and whether the about:policies Errors tab stayed empty.

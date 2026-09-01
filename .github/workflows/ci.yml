@@ -1,0 +1,142 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+# The test suite reads public files from GitHub and touches nothing else.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      # Pinned by commit rather than by tag: a tag can be moved, a commit cannot.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+
+      # awk implementations disagree in ways that produce silently wrong output
+      # rather than errors, and the suite runs against every one it finds.
+      - name: Install additional awk implementations
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gawk mawk busybox original-awk
+
+      - name: Record the environment
+        run: |
+          uname -a
+          command -v awk && (awk --version 2>/dev/null | head -1 || awk -W version 2>&1 | head -1 || true)
+          python3 --version
+          sh -c 'echo shell ok'
+
+      - name: Run the test suite
+        run: tests/run.sh
+
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - name: Lint every shell script in the repository
+        run: shellcheck install/*.sh tests/*.sh tools/*.sh
+      - name: Check the python tooling parses
+        run: python3 -m py_compile tools/*.py
+
+  no-dependencies:
+    name: Runs without jq or python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+
+      # Alpine is busybox and nothing else: no bash, no jq, no python, no
+      # coreutils. If the installer works here it works on a minimal container,
+      # a rescue shell, and a stock macOS.
+      #
+      # Alpine is driven through docker rather than the job's `container:` key
+      # because actions/checkout is a Node action and the runner's node is
+      # glibc-linked, so it cannot execute inside a musl container.
+      - name: Build, install and uninstall using only busybox
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo alpine:latest sh -eu -c '
+            echo "shell:  $(command -v sh)"
+            echo "awk:    $(command -v awk)"
+            echo "jq:     $(command -v jq || echo absent)"
+            echo "python: $(command -v python3 || echo absent)"
+
+            install/foxprivacy.sh --profile strict --dry-run > /tmp/out.txt
+            sed -n "/^{/,\$p" /tmp/out.txt > /tmp/policies.json
+
+            # No JSON parser is available here, so check the shape by hand.
+            grep -q "\"policies\"" /tmp/policies.json
+            grep -q "\"EnableTrackingProtection\"" /tmp/policies.json
+            grep -q "\"Category\": \"strict\"" /tmp/policies.json
+            grep -q "\"Preferences\"" /tmp/policies.json
+            if grep -q "{}" /tmp/policies.json; then
+              echo "a nested policy came out empty"; exit 1
+            fi
+
+            root=$(mktemp -d)
+            FOXPRIVACY_ROOT="$root" install/foxprivacy.sh --profile standard
+            test -f "$root/etc/firefox/policies/policies.json"
+            FOXPRIVACY_ROOT="$root" install/foxprivacy.sh --verify
+            FOXPRIVACY_ROOT="$root" install/foxprivacy.sh --uninstall
+            test ! -f "$root/etc/firefox/policies/policies.json"
+            echo ok
+          '
+
+  windows:
+    name: Tests on windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+      - name: Record the environment
+        shell: powershell
+        run: $PSVersionTable | Format-List
+      - name: Run the Windows test suite
+        shell: powershell
+        run: .\tests\run.ps1
+      - name: Analyse the PowerShell installer
+        shell: powershell
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+          $issues = Invoke-ScriptAnalyzer -Path .\install\foxprivacy.ps1 -Severity Error
+          $issues | Format-Table -AutoSize
+          if ($issues.Count -gt 0) { exit 1 }
+
+  single-file:
+    name: Single file build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+      - name: Build dist
+        run: tools/build-dist.sh
+      # The released artefact is one file with the manifest embedded. It has to
+      # behave identically to the checkout with no repository around it.
+      - name: The single file must work on its own
+        run: |
+          set -e
+          sandbox=$(mktemp -d)
+          cp dist/foxprivacy.sh "$sandbox/"
+          cd "$sandbox"
+          ./foxprivacy.sh --profile strict --dry-run | sed -n '/^{/,$p' > out.json
+          cd - >/dev/null
+          diff -u tests/fixtures/strict.json "$sandbox/out.json"
+          echo "single file output matches the fixture"
+      - name: The single file must install and uninstall on its own
+        run: |
+          set -e
+          sandbox=$(mktemp -d); root=$(mktemp -d)
+          cp dist/foxprivacy.sh "$sandbox/"
+          FOXPRIVACY_ROOT="$root" "$sandbox/foxprivacy.sh" --profile standard
+          test -f "$root/etc/firefox/policies/policies.json"
+          FOXPRIVACY_ROOT="$root" "$sandbox/foxprivacy.sh" --verify
+          FOXPRIVACY_ROOT="$root" "$sandbox/foxprivacy.sh" --uninstall
+          test ! -f "$root/etc/firefox/policies/policies.json"
