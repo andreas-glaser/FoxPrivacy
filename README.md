@@ -8,11 +8,18 @@ list of settings and puts it where Firefox reads it. It backs up whatever was
 there before and removes itself cleanly. Linux, macOS, and Windows, with nothing
 to install first.
 
-> **1.0.0.** Every test passes on Linux, macOS and Windows runners, and the
-> Linux build has been checked against a real Firefox 154 with an empty
-> `about:policies` Errors tab. On macOS and Windows the policy file lives inside
-> the application, so a Firefox update can remove it; `--verify` tells you if
-> that has happened.
+> **1.0.0.** Every test passes on Linux, macOS and Windows CI runners. Linux is
+> confirmed working against a real Firefox 154, with an empty `about:policies`
+> Errors tab.
+>
+> **Known issue on macOS:** installing from Terminal fails. macOS App Management
+> refuses to let one program modify another application's bundle even as root,
+> and the policy file lives inside `Firefox.app`. Either grant your terminal App
+> Management in System Settings, Privacy and Security, or run the installer over
+> ssh, where the restriction does not apply.
+>
+> On macOS and Windows the policy file lives inside the application, so a Firefox
+> update can remove it. `--verify` tells you if that has happened.
 
 ## Why policies instead of about:config
 

@@ -12,6 +12,22 @@ major, minor, or patch change in a configuration tool.
 
 ## [Unreleased]
 
+### Fixed
+- The installer told macOS users to re-run with `sudo` when they already had.
+  It now prints the underlying error, and when it is already running as root it
+  explains what is actually refusing the write
+
+### Known issues
+- **Installing on macOS from Terminal fails.** macOS App Management refuses to
+  let one program modify another application's bundle, even as root, and the
+  policy file lives inside `Firefox.app`. The refusal depends on which program
+  asks, not which user you are: the same command succeeds over ssh. Work around
+  it by granting your terminal App Management in System Settings, Privacy and
+  Security, or by running the installer over ssh. A proper fix is to stop using
+  the app bundle on macOS and write to the `org.mozilla.firefox` preference
+  domain instead, which Firefox reads natively and which a Firefox update cannot
+  remove
+
 ## [1.0.0] - 2026-09-01
 
 ### Added

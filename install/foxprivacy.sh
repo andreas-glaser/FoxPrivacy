@@ -461,11 +461,13 @@ cmd_install() {
       if [ "$(id -u)" = "0" ]; then
         die "cannot create $dir, and this is already running as root.
   $mkdir_error
-  On macOS this is normally App Management protection: since Ventura, changing
-  another application's bundle is refused even for root unless the program doing
-  it has been granted permission. Either grant your terminal App Management in
-  System Settings, Privacy and Security, App Management, or install somewhere
-  else with --target.
+  On macOS this is App Management protection. Since Ventura, changing another
+  application's bundle is refused even for root, and the refusal depends on
+  which program is asking rather than on which user you are. Options:
+    - System Settings, Privacy and Security, App Management: enable the terminal
+      you are using, then run this again
+    - or run it over ssh to this machine, where the restriction does not apply
+    - or choose a different location with --target
   Please report what you see: https://github.com/andreas-glaser/FoxPrivacy/issues"
       fi
       die "cannot create $dir
