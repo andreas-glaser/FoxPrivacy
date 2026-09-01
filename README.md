@@ -8,15 +8,9 @@ list of settings and puts it where Firefox reads it. It backs up whatever was
 there before and removes itself cleanly. Linux, macOS, and Windows, with nothing
 to install first.
 
-> **1.0.0.** Every test passes on Linux, macOS and Windows CI runners. Linux is
-> confirmed working against a real Firefox 154, with an empty `about:policies`
+> **1.0.0.** Every test passes on Linux, macOS and Windows CI runners, and Linux
+> is confirmed working against a real Firefox 154 with an empty `about:policies`
 > Errors tab.
->
-> **Known issue on macOS:** installing from Terminal fails. macOS App Management
-> refuses to let one program modify another application's bundle even as root,
-> and the policy file lives inside `Firefox.app`. Either grant your terminal App
-> Management in System Settings, Privacy and Security, or run the installer over
-> ssh, where the restriction does not apply.
 >
 > On macOS and Windows the policy file lives inside the application, so a Firefox
 > update can remove it. `--verify` tells you if that has happened.
@@ -94,6 +88,17 @@ Windows needs only the PowerShell that ships with it.
 
 ```sh
 curl -fsSLo foxprivacy.sh https://github.com/andreas-glaser/FoxPrivacy/releases/latest/download/foxprivacy.sh && sudo sh foxprivacy.sh
+```
+
+**macOS** needs one permission first. macOS refuses to let a terminal modify
+another application, and Firefox reads its policy file from inside its own
+application bundle. So grant it once, in **System Settings > Privacy & Security >
+App Management**, enabling the terminal you use. Then the same command as above
+works. If you would rather not grant that, run the installer over ssh to the same
+machine, where the restriction does not apply:
+
+```sh
+ssh you@your-mac 'sudo sh foxprivacy.sh --profile standard'
 ```
 
 **Windows** - right click Windows PowerShell, choose Run as administrator, then:

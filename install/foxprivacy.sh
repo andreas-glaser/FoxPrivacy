@@ -307,7 +307,7 @@ state_get_or_empty() { state_get "$1" 2>/dev/null || printf ''; }
 
 write_state() {
   dir=$(default_state_dir)
-  (umask 022 && mkdir -p "$dir") || die "cannot create $dir"
+  (umask 022 && mkdir -p "$dir") 2>/dev/null || return 1
   {
     printf 'version=%s\n' "$FOXPRIVACY_VERSION"
     printf 'installed_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -316,7 +316,7 @@ write_state() {
     printf 'backup=%s\n' "$3"
     printf 'sha256=%s\n' "$4"
     printf 'features=%s\n' "$5"
-  } > "$dir/state"
+  } > "$dir/state" 2>/dev/null || return 1
   chmod 644 "$dir/state"
 }
 
@@ -428,6 +428,7 @@ cmd_install() {
   fi
 
   warn_alternate_packaging
+  preflight_target
 
   prior_target=$(state_get_or_empty target)
   if [ -n "$prior_target" ] && [ "$prior_target" != "$target" ] && [ -f "$prior_target" ] &&
@@ -502,7 +503,18 @@ cmd_install() {
   chmod 644 "$target.foxprivacy-tmp"
   mv "$target.foxprivacy-tmp" "$target"
 
-  write_state "$profile" "$target" "$backup" "$(sha256 "$target")" "$features"
+  # If the record cannot be written, the policy file must not stay behind: a
+  # file we cannot prove we wrote is one uninstall will refuse to remove.
+  if ! write_state "$profile" "$target" "$backup" "$(sha256 "$target")" "$features"; then
+    if [ -n "$backup" ] && [ -f "$backup" ]; then
+      mv "$backup" "$target"
+    else
+      rm -f "$target"
+    fi
+    die "could not record the install in $(default_state_dir), so it was undone.
+  Nothing has been changed. This usually needs root:
+    sudo sh $0 $ORIGINAL_ARGS"
+  fi
 
   ok "installed the $profile profile to $target"
   info "$(count_words "$features") features enabled"
@@ -594,7 +606,46 @@ interactive_details() {
 
 id_at_index() { all_ids | sed -n "${1}p"; }
 
+# An install needs two directories: the one Firefox reads, and the one holding
+# the record of what we did. They can have different permissions, and finding
+# that out after writing the policy file leaves a half-installed machine.
+preflight_target() {
+  [ "$DRY_RUN" = "1" ] && return 0
+  preflight_dir "$(dirname "${TARGET:-$(default_target)}")"
+  preflight_dir "$(default_state_dir)"
+}
+
+preflight_dir() {
+  _dir="$1"
+  [ -d "$_dir" ] && [ -w "$_dir" ] && return 0
+  if [ -d "$_dir" ]; then
+    _why="$_dir is not writable"
+  else
+    _why="cannot create $_dir"
+  fi
+  if [ ! -d "$_dir" ] && (umask 022 && mkdir -p "$_dir") 2>/dev/null; then
+    # Created only to find out whether we could. Leave no trace, least of all
+    # inside somebody's application bundle.
+    rmdir "$_dir" 2>/dev/null || true
+    return 0
+  fi
+  if [ "$(id -u)" = "0" ]; then
+    die "$_why, and this is already running as root.
+  On macOS this is App Management protection: since Ventura, changing another
+  application's bundle is refused even for root, and the refusal depends on
+  which program is asking rather than which user you are. Either:
+    - System Settings, Privacy and Security, App Management: enable the terminal
+      you are using, then run this again
+    - or run it over ssh to this machine, where the restriction does not apply"
+  fi
+  die "$_why
+  This needs root. Re-run with sudo:
+    sudo sh $0 $ORIGINAL_ARGS"
+}
+
 cmd_interactive() {
+  # Fail now rather than after the menu has been filled in.
+  preflight_target
   standard_sel=$(sel_normalise "$(preset_ids standard | tr '\n' ' ')")
   strict_sel=$(sel_normalise "$(preset_ids strict | tr '\n' ' ')")
   sel="$standard_sel"

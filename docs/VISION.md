@@ -255,6 +255,17 @@ install would change against what is already there.
 
 ## Risks and open questions
 
+- **macOS has no route outside the application bundle.** Firefox does have a
+  macOS policies provider that reads the `org.mozilla.firefox` preference
+  domain, which looks like the answer: it would survive Firefox updates and
+  sidestep App Management entirely. It does not work on a machine without MDM.
+  Tested on macOS 26.6.2: a plist in `/Library/Preferences` is not visible to
+  the app's domain at all, and one hand-placed in `/Library/Managed Preferences`
+  is still not honoured after restarting `cfprefsd`. Forced values have to come
+  from a real installed configuration profile. Until FoxPrivacy ships a
+  `.mobileconfig`, which needs manual approval and so is not obviously better,
+  the app bundle is the only route, and App Management is a permission the user
+  grants once.
 - **Snap and flatpak policy paths.** These need to be confirmed by installing and
   reading `about:policies`, not assumed. The installer detects both, writes to
   the system location anyway, and warns that whether that build reads it is

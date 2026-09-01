@@ -572,6 +572,22 @@ else not_ok "dry run writes nothing"; fi
 if [ ! -f "$state" ]; then ok "dry run records no state"
 else not_ok "dry run records no state"; fi
 
+# A real macOS install exposed this: the app bundle was writable but the state
+# directory was not, so the policy file landed and the record did not. That left
+# a file uninstall would refuse to touch, with no way back through the tool.
+rm -rf "$root"; mkdir -p "$(dirname "$target")"
+out=$(FOXPRIVACY_STATE_DIR=/proc/nope/foxprivacy "$INSTALLER" --profile standard 2>&1)
+check "an install that cannot record itself fails" "1" "$?"
+[ ! -f "$target" ] && ok "and leaves no policy file behind" ||
+  not_ok "and leaves no policy file behind" "a half-installed machine: $out"
+
+# The same, with something already there: it must come back.
+rm -rf "$root"; mkdir -p "$(dirname "$target")"
+printf '%s\n' '{"policies":{"DisableDeveloperTools":true}}' > "$target"
+before=$(sum256 "$target")
+FOXPRIVACY_STATE_DIR=/proc/nope/foxprivacy "$INSTALLER" --profile standard >/dev/null 2>&1
+check "and restores what was there before" "$before" "$(sum256 "$target" 2>/dev/null)"
+
 # ----------------------------------------------------------------- macos ----
 
 section "macos path logic"

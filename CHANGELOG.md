@@ -17,16 +17,28 @@ major, minor, or patch change in a configuration tool.
   It now prints the underlying error, and when it is already running as root it
   explains what is actually refusing the write
 
+### Fixed
+- An install could write the policy file and then fail to record itself, leaving
+  a machine with a policy file the tool would not remove because it could not
+  prove it wrote it. Found on a real Mac, where the application bundle was
+  writable but `/Library/Application Support` was not. The install is now undone
+  if the record cannot be written, restoring any file it replaced, and both
+  directories are checked before anything is written
+
+### Changed
+- The interactive menu checks it can write to the target before it opens, so a
+  macOS permission problem is reported immediately rather than after twenty
+  settings have been chosen. The probe removes anything it created
+
 ### Known issues
-- **Installing on macOS from Terminal fails.** macOS App Management refuses to
+- **Installing on macOS from Terminal needs a one-time permission.** macOS App Management refuses to
   let one program modify another application's bundle, even as root, and the
   policy file lives inside `Firefox.app`. The refusal depends on which program
   asks, not which user you are: the same command succeeds over ssh. Work around
-  it by granting your terminal App Management in System Settings, Privacy and
-  Security, or by running the installer over ssh. A proper fix is to stop using
-  the app bundle on macOS and write to the `org.mozilla.firefox` preference
-  domain instead, which Firefox reads natively and which a Firefox update cannot
-  remove
+  Grant your terminal App Management in System Settings, Privacy and Security,
+  or run the installer over ssh. Writing to the `org.mozilla.firefox` preference
+  domain instead was built and tested on macOS 26, and does not work without an
+  installed configuration profile, so the app bundle remains the only route
 
 ## [1.0.0] - 2026-09-01
 
