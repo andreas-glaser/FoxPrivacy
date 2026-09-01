@@ -8,13 +8,6 @@ list of settings and puts it where Firefox reads it. It backs up whatever was
 there before and removes itself cleanly. Linux, macOS, and Windows, with nothing
 to install first.
 
-> **1.0.0.** Every test passes on Linux, macOS and Windows CI runners, and Linux
-> is confirmed working against a real Firefox 154 with an empty `about:policies`
-> Errors tab.
->
-> On macOS and Windows the policy file lives inside the application, so a Firefox
-> update can remove it. `--verify` tells you if that has happened.
-
 ## Why policies instead of about:config
 
 Firefox's policy engine is a documented, supported interface with a published
@@ -193,6 +186,10 @@ meantime, uninstall refuses rather than guessing.
 Restart Firefox and open `about:policies`. The Errors tab must be empty, and the
 Active tab lists what is in effect. This is the only way to see that Firefox
 accepted a policy rather than ignoring it.
+
+On macOS and Windows the policy file lives inside the Firefox application, so a
+Firefox update can remove it. `--verify` tells you whether that has happened;
+re-running the installer puts it back.
 
 ## Documentation
 

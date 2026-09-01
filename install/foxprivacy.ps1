@@ -58,6 +58,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Set once the target is known; the record is written beside it.
+$script:TargetPathForState = ''
+
 $FoxPrivacyVersion = '1.0.0'
 
 # --------------------------------------------------------------- output ----
@@ -325,14 +328,31 @@ function Get-DefaultTarget {
     Stop-WithError 'could not determine the Firefox installation directory'
 }
 
-function Get-StateDir {
+# Older releases kept the record in a system directory. Still read, so installs
+# made by those versions can still be verified and removed.
+function Get-LegacyStateDir {
     if ($env:FOXPRIVACY_STATE_DIR) { return $env:FOXPRIVACY_STATE_DIR }
     $root = Get-Root
     if ($root) { return (Join-Path $root 'ProgramData\FoxPrivacy') }
     return (Join-Path $env:ProgramData 'FoxPrivacy')
 }
 
-function Get-StateFile { return (Join-Path (Get-StateDir) 'state') }
+# The record lives beside the policy file it describes, so writing one never
+# needs more privilege than writing the other.
+function Get-StateDir {
+    if ($script:TargetPathForState) { return (Split-Path -Parent $script:TargetPathForState) }
+    return (Split-Path -Parent (Get-DefaultTarget))
+}
+
+function Get-StateFile { return (Join-Path (Get-StateDir) '.foxprivacy-state') }
+
+function Get-ActiveStateFile {
+    $current = Get-StateFile
+    if (Test-Path -LiteralPath $current) { return $current }
+    $legacy = Join-Path (Get-LegacyStateDir) 'state'
+    if (Test-Path -LiteralPath $legacy) { return $legacy }
+    return $current
+}
 
 function Get-Sha256 {
     param([string]$Path)
@@ -350,7 +370,7 @@ function Write-TextFile {
 # ------------------------------------------------------------------ state ----
 
 function Read-State {
-    $file = Get-StateFile
+    $file = Get-ActiveStateFile
     if (-not (Test-Path -LiteralPath $file)) { return $null }
     $state = @{}
     foreach ($line in (Get-Content -LiteralPath $file)) {
@@ -631,10 +651,11 @@ cannot change $recordedTarget
 "@
     }
 
-    Remove-Item -LiteralPath (Get-StateFile) -Force
-    $dir = Get-StateDir
-    if ((Test-Path -LiteralPath $dir) -and -not (Get-ChildItem -LiteralPath $dir)) {
-        Remove-Item -LiteralPath $dir -Force
+    Remove-Item -LiteralPath (Get-ActiveStateFile) -Force
+    # Tidy away the system directory older versions used, if it is now empty.
+    $legacy = Get-LegacyStateDir
+    if ((Test-Path -LiteralPath $legacy) -and -not (Get-ChildItem -LiteralPath $legacy)) {
+        Remove-Item -LiteralPath $legacy -Force
     }
     Write-Host ''
     Write-Host 'Restart Firefox. about:policies should now be empty.' -ForegroundColor DarkGray
@@ -772,6 +793,7 @@ function Invoke-Main {
     if ($List) { Invoke-List -Features $features; return 0 }
 
     if ($Target) { $targetPath = $Target } else { $targetPath = Get-DefaultTarget }
+    $script:TargetPathForState = $targetPath
 
     if ($Verify) { return (Invoke-Verify -TargetPath $targetPath) }
     if ($Uninstall) { Invoke-Uninstall -TargetPath $targetPath; return 0 }

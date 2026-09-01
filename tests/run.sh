@@ -431,15 +431,17 @@ export FOXPRIVACY_ROOT="$root"
 case "$(uname -s)" in
   Darwin)
     target_rel="Applications/Firefox.app/Contents/Resources/distribution/policies.json"
-    state_rel="Library/Application Support/FoxPrivacy/state"
+    state_rel="Applications/Firefox.app/Contents/Resources/distribution/.foxprivacy-state"
     parent_rel="Applications/Firefox.app/Contents/Resources"
-    state_dir_rel="Library/Application Support/FoxPrivacy"
+    state_dir_rel="Applications/Firefox.app/Contents/Resources/distribution"
+    legacy_dir_rel="Library/Application Support/FoxPrivacy"
     ;;
   *)
     target_rel="etc/firefox/policies/policies.json"
-    state_rel="var/lib/foxprivacy/state"
+    state_rel="etc/firefox/policies/.foxprivacy-state"
     parent_rel="etc/firefox"
-    state_dir_rel="var/lib/foxprivacy"
+    state_dir_rel="etc/firefox/policies"
+    legacy_dir_rel="var/lib/foxprivacy"
     ;;
 esac
 target="$root/$target_rel"
@@ -572,21 +574,39 @@ else not_ok "dry run writes nothing"; fi
 if [ ! -f "$state" ]; then ok "dry run records no state"
 else not_ok "dry run records no state"; fi
 
-# A real macOS install exposed this: the app bundle was writable but the state
-# directory was not, so the policy file landed and the record did not. That left
-# a file uninstall would refuse to touch, with no way back through the tool.
+# The record now lives beside the policy file, so installing never needs a
+# second, more privileged location. A real macOS install found that the hard
+# way: the application bundle was writable, /Library/Application Support was
+# not, and the machine ended up half configured.
 rm -rf "$root"; mkdir -p "$(dirname "$target")"
-out=$(FOXPRIVACY_STATE_DIR=/proc/nope/foxprivacy "$INSTALLER" --profile standard 2>&1)
-check "an install that cannot record itself fails" "1" "$?"
-if [ ! -f "$target" ]; then ok "and leaves no policy file behind"
-else not_ok "and leaves no policy file behind" "a half-installed machine: $out"; fi
+"$INSTALLER" --profile standard >/dev/null 2>&1
+check "the record sits next to the policy file" "$(dirname "$target")" "$(dirname "$state")"
+if [ -f "$state" ]; then ok "and needs no second directory to write it"
+else not_ok "and needs no second directory to write it"; fi
 
-# The same, with something already there: it must come back.
-rm -rf "$root"; mkdir -p "$(dirname "$target")"
-printf '%s\n' '{"policies":{"DisableDeveloperTools":true}}' > "$target"
-before=$(sum256 "$target")
-FOXPRIVACY_STATE_DIR=/proc/nope/foxprivacy "$INSTALLER" --profile standard >/dev/null 2>&1
-check "and restores what was there before" "$before" "$(sum256 "$target" 2>/dev/null)"
+# A record written by 1.0.0 lived in a system directory. Those installs must
+# still be verifiable and removable.
+rm -rf "$root"; mkdir -p "$(dirname "$target")" "$root/$legacy_dir_rel"
+"$INSTALLER" --profile standard >/dev/null 2>&1
+mv "$state" "$root/$legacy_dir_rel/state"
+"$INSTALLER" --verify >/dev/null 2>&1
+check "a record from an older version is still read" "0" "$?"
+"$INSTALLER" --uninstall >/dev/null 2>&1
+check "and can still be uninstalled" "0" "$?"
+if [ ! -f "$target" ]; then ok "which removes the policy file"
+else not_ok "which removes the policy file"; fi
+if [ ! -f "$root/$legacy_dir_rel/state" ]; then ok "and the old record"
+else not_ok "and the old record"; fi
+
+# Reinstalling over an older install must end with one record, not two.
+rm -rf "$root"; mkdir -p "$(dirname "$target")" "$root/$legacy_dir_rel"
+"$INSTALLER" --profile standard >/dev/null 2>&1
+mv "$state" "$root/$legacy_dir_rel/state"
+"$INSTALLER" --profile strict >/dev/null 2>&1
+if [ -f "$state" ]; then ok "reinstalling writes the record in its new place"
+else not_ok "reinstalling writes the record in its new place"; fi
+if [ ! -f "$root/$legacy_dir_rel/state" ]; then ok "and retires the old one"
+else not_ok "and retires the old one"; fi
 
 # A record we cannot parse must stop us. Treating it as empty made uninstall
 # report "OK removed " for the empty string, exit 0, and delete the record,
@@ -622,7 +642,7 @@ check "macOS install exits cleanly" "0" "$?"
 if [ -f "$mac_root/Applications/Firefox.app/Contents/Resources/distribution/policies.json" ]
 then ok "macOS install writes into the app bundle"
 else not_ok "macOS install writes into the app bundle"; fi
-if [ -f "$mac_root/Library/Application Support/FoxPrivacy/state" ]
+if [ -f "$mac_root/Applications/Firefox.app/Contents/Resources/distribution/.foxprivacy-state" ]
 then ok "macOS state goes to the documented macOS location"
 else not_ok "macOS state goes to the documented macOS location"; fi
 PATH="$fake_bin:$PATH" FOXPRIVACY_ROOT="$mac_root" "$INSTALLER" --uninstall >/dev/null 2>&1

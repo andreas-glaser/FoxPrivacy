@@ -136,7 +136,7 @@ Test-Section 'install cycle'
 
 $root = Join-Path ([IO.Path]::GetTempPath()) ("fp-" + [Guid]::NewGuid().ToString('N'))
 $target = Join-Path $root 'Program Files\Mozilla Firefox\distribution\policies.json'
-$state = Join-Path $root 'ProgramData\FoxPrivacy\state'
+$state = Join-Path $root 'Program Files\Mozilla Firefox\distribution\.foxprivacy-state'
 $envRoot = @{ FOXPRIVACY_ROOT = $root }
 
 $r = Invoke-Installer -Arguments @('-Profile', 'standard') -Env $envRoot
@@ -179,7 +179,7 @@ Test-Section 'backup and restore'
 
 $root = Join-Path ([IO.Path]::GetTempPath()) ("fp-" + [Guid]::NewGuid().ToString('N'))
 $target = Join-Path $root 'Program Files\Mozilla Firefox\distribution\policies.json'
-$state = Join-Path $root 'ProgramData\FoxPrivacy\state'
+$state = Join-Path $root 'Program Files\Mozilla Firefox\distribution\.foxprivacy-state'
 $envRoot = @{ FOXPRIVACY_ROOT = $root }
 
 $null = New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force
@@ -248,7 +248,7 @@ Test-Section 'an unreadable record'
 
 $root = Join-Path ([IO.Path]::GetTempPath()) ("fp-" + [Guid]::NewGuid().ToString('N'))
 $target = Join-Path $root 'Program Files\Mozilla Firefox\distribution\policies.json'
-$state = Join-Path $root 'ProgramData\FoxPrivacy\state'
+$state = Join-Path $root 'Program Files\Mozilla Firefox\distribution\.foxprivacy-state'
 $envRoot = @{ FOXPRIVACY_ROOT = $root }
 $null = New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force
 $null = New-Item -ItemType Directory -Path (Split-Path -Parent $state) -Force

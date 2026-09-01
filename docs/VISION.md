@@ -169,11 +169,14 @@ is still the one FoxPrivacy wrote.
 | macOS | `/Applications/Firefox.app/Contents/Resources/distribution/policies.json` | No, a full app update replaces the bundle |
 | Windows | `Mozilla Firefox\distribution\policies.json`, under whichever Program Files directory actually holds `firefox.exe` | Usually, but not guaranteed |
 
-Each installer also keeps a small state file recording what it wrote, its
-checksum, and the path of any backup it displaced: `/var/lib/foxprivacy/state`
-on Linux, `/Library/Application Support/FoxPrivacy/state` on macOS, and
-`%ProgramData%\FoxPrivacy\state` on Windows. Uninstall reads it, and without it
-the tool will not touch a policy file it cannot prove it wrote.
+Each installer also keeps a small record of what it wrote, its checksum, and the
+path of any backup it displaced. It sits beside the policy file as
+`.foxprivacy-state`, which matters more than it sounds: writing the record then
+needs exactly the same permission as writing the policy file, so uninstalling
+can never demand more privilege than installing did. On macOS that is the
+difference between needing `sudo` and not, because application bundles usually
+belong to the user who installed them. Uninstall reads it, and without it the
+tool will not touch a policy file it cannot prove it wrote.
 
 Linux is the clean case: `/etc/firefox/policies/` is outside the install tree,
 so nothing that updates Firefox can remove it. macOS and Windows put the file

@@ -266,6 +266,25 @@ default_state_dir() {
 # Every integrity check rests on this. Without it, verify would compare two
 # identical placeholders and pass, so a missing tool has to be fatal rather
 # than quietly permissive.
+# uid:gid of a path, on GNU and BSD stat alike. Empty if neither works.
+owner_of() {
+  stat -c '%u:%g' "$1" 2>/dev/null || stat -f '%u:%g' "$1" 2>/dev/null || printf ''
+}
+
+# A directory created as root inside a tree somebody else owns would lock them
+# out of their own installation: on macOS an application bundle usually belongs
+# to whoever installed it, so one sudo install would make sudo permanent.
+# Matching the parent grants nothing new, because whoever owns the parent can
+# already replace anything inside it.
+match_parent_owner() {
+  [ "$(id -u)" = "0" ] || return 0
+  command -v chown >/dev/null 2>&1 || return 0
+  _owner=$(owner_of "$(dirname "$1")")
+  [ -n "$_owner" ] || return 0
+  [ "$_owner" = "0:0" ] && return 0
+  chown "$_owner" "$1" 2>/dev/null || true
+}
+
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$1" | cut -d' ' -f1
@@ -296,11 +315,29 @@ warn_alternate_packaging() {
 
 # ------------------------------------------------------------------ state ----
 
-state_file() { printf '%s/state' "$(default_state_dir)"; }
+# The record lives beside the policy file it describes. Anyone who can write one
+# can write the other, so uninstalling never needs more privilege than installing
+# did. On macOS that is the difference between needing sudo and not: application
+# bundles are usually owned by the user who installed them, while
+# /Library/Application Support is not.
+state_file() {
+  printf '%s/.foxprivacy-state' "$(dirname "${TARGET:-$(default_target)}")"
+}
+
+# Releases up to 1.0.0 kept it in a system directory. Still read, so an install
+# made by those versions can still be verified and removed.
+legacy_state_file() { printf '%s/state' "$(default_state_dir)"; }
+
+active_state_file() {
+  if [ -f "$(state_file)" ]; then printf '%s' "$(state_file)"
+  elif [ -f "$(legacy_state_file)" ]; then printf '%s' "$(legacy_state_file)"
+  else printf '%s' "$(state_file)"; fi
+}
 
 state_get() {
-  [ -f "$(state_file)" ] || return 1
-  sed -n "s/^$1=//p" "$(state_file)"
+  _sf=$(active_state_file)
+  [ -f "$_sf" ] || return 1
+  sed -n "s/^$1=//p" "$_sf"
 }
 
 state_get_or_empty() { state_get "$1" 2>/dev/null || printf ''; }
@@ -314,7 +351,7 @@ check_state() {
 }
 
 write_state() {
-  dir=$(default_state_dir)
+  dir=$(dirname "$(state_file)")
   (umask 022 && mkdir -p "$dir") 2>/dev/null || return 1
   {
     printf 'version=%s\n' "$FOXPRIVACY_VERSION"
@@ -324,8 +361,9 @@ write_state() {
     printf 'backup=%s\n' "$3"
     printf 'sha256=%s\n' "$4"
     printf 'features=%s\n' "$5"
-  } > "$dir/state" 2>/dev/null || return 1
-  chmod 644 "$dir/state"
+  } > "$(state_file)" 2>/dev/null || return 1
+  chmod 644 "$(state_file)"
+  match_parent_owner "$(state_file)"
 }
 
 # --------------------------------------------------------------- selection ----
@@ -373,7 +411,7 @@ cmd_list() {
 cmd_verify() {
   target="${TARGET:-$(default_target)}"
 
-  if [ ! -f "$(state_file)" ]; then
+  if [ ! -f "$(active_state_file)" ]; then
     if [ -f "$target" ]; then
       printf '%snot installed by FoxPrivacy%s\n' "$C_YELLOW" "$C_RESET"
       info "A policies.json exists at $target but FoxPrivacy did not put it there."
@@ -465,6 +503,7 @@ cmd_install() {
     fi
   else
     mkdir_error=$( (umask 022 && mkdir -p "$dir") 2>&1 ) || cannot_create=1
+    [ "${cannot_create:-0}" = "1" ] || match_parent_owner "$dir"
     if [ "${cannot_create:-0}" = "1" ]; then
       # Telling somebody to use sudo when they already did is worse than saying
       # nothing. Root and non-root are genuinely different problems here.
@@ -511,6 +550,7 @@ cmd_install() {
   printf '%s\n' "$body" > "$target.foxprivacy-tmp"
   chmod 644 "$target.foxprivacy-tmp"
   mv "$target.foxprivacy-tmp" "$target"
+  match_parent_owner "$target"
 
   # If the record cannot be written, the policy file must not stay behind: a
   # file we cannot prove we wrote is one uninstall will refuse to remove.
@@ -520,9 +560,17 @@ cmd_install() {
     else
       rm -f "$target"
     fi
-    die "could not record the install in $(default_state_dir), so it was undone.
+    die "could not record the install in $(dirname "$(state_file)"), so it was undone.
   Nothing has been changed. This usually needs root:
     sudo sh $0 $ORIGINAL_ARGS"
+  fi
+
+  # Having written the record in its own place, retire the one an older version
+  # left behind rather than leaving two. Best effort: it may need root, and
+  # failing to tidy up is not a reason to fail the install.
+  if [ "$(legacy_state_file)" != "$(state_file)" ] && [ -f "$(legacy_state_file)" ]; then
+    rm -f "$(legacy_state_file)" 2>/dev/null &&
+      rmdir "$(default_state_dir)" 2>/dev/null || true
   fi
 
   ok "installed the $profile profile to $target"
@@ -536,7 +584,7 @@ cmd_install() {
 cmd_uninstall() {
   target="${TARGET:-$(default_target)}"
 
-  if [ ! -f "$(state_file)" ]; then
+  if [ ! -f "$(active_state_file)" ]; then
     if [ -f "$target" ]; then
       die "there is a policies.json at $target but FoxPrivacy has no record of
   installing it. Refusing to touch a file that is not ours. Remove it by hand
@@ -553,11 +601,6 @@ cmd_uninstall() {
 
   # Removing the record is part of uninstalling. Finding out it is not writable
   # after the policy file is already gone leaves the same mess as a half install.
-  if [ ! -w "$(default_state_dir)" ]; then
-    die "cannot write to $(default_state_dir)
-  This needs root. Re-run with sudo:
-    sudo sh $0 $ORIGINAL_ARGS"
-  fi
 
   if [ -f "$recorded_target" ] && [ "$(sha256 "$recorded_target")" != "$recorded_sha" ] &&
      [ "$FORCE" != "1" ]; then
@@ -589,7 +632,8 @@ cmd_uninstall() {
     [ -n "$backup" ] && warn "the recorded backup $backup is gone, so nothing was restored"
   fi
 
-  rm -f "$(state_file)"
+  rm -f "$(active_state_file)"
+  # Tidy away the system directory older versions used, if it is now empty.
   rmdir "$(default_state_dir)" 2>/dev/null || true
   printf '\n%sRestart Firefox. about:policies should now be empty.%s\n' "$C_DIM" "$C_RESET"
 }
@@ -630,7 +674,6 @@ id_at_index() { all_ids | sed -n "${1}p"; }
 preflight_target() {
   [ "$DRY_RUN" = "1" ] && return 0
   preflight_dir "$(dirname "${TARGET:-$(default_target)}")"
-  preflight_dir "$(default_state_dir)"
 }
 
 preflight_dir() {

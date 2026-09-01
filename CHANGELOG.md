@@ -35,6 +35,20 @@ major, minor, or patch change in a configuration tool.
   directories are checked before anything is written
 
 ### Changed
+- Files created while running as root now match the ownership of the directory
+  they are created in. Installing once with `sudo` used to leave a root owned
+  directory inside an application bundle that belongs to you, which made `sudo`
+  permanent. Matching the parent grants nothing new: whoever owns it can already
+  replace anything inside it
+- The README no longer carries a version status banner, which went stale on
+  every fix. The macOS and Windows update caveat now sits with the verification
+  instructions, where it is relevant
+- The record of what was installed now sits beside the policy file as
+  `.foxprivacy-state`, rather than in a separate system directory. Writing it
+  then needs exactly the same permission as writing the policy file, so an
+  install can no longer half succeed, and on macOS it removes the need for
+  `sudo` entirely when the application bundle belongs to you. Records written by
+  1.0.0 are still read, so those installs remain verifiable and removable
 - The interactive menu checks it can write to the target before it opens, so a
   macOS permission problem is reported immediately rather than after twenty
   settings have been chosen. The probe removes anything it created

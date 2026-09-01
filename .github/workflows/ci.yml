@@ -94,6 +94,27 @@ jobs:
             FOXPRIVACY_ROOT="$root" install/foxprivacy.sh --verify
             FOXPRIVACY_ROOT="$root" install/foxprivacy.sh --uninstall
             test ! -f "$root/etc/firefox/policies/policies.json"
+
+            # Installing as root into a tree somebody else owns must not lock
+            # them out of it. One sudo install would otherwise make sudo
+            # permanent, which is what happens on macOS application bundles.
+            owned=$(mktemp -d)
+            mkdir -p "$owned/etc/firefox"
+            chown 1500:1500 "$owned/etc/firefox"
+            FOXPRIVACY_ROOT="$owned" install/foxprivacy.sh --profile standard >/dev/null
+            for f in "$owned/etc/firefox/policies" \
+                     "$owned/etc/firefox/policies/policies.json" \
+                     "$owned/etc/firefox/policies/.foxprivacy-state"; do
+              got=$(stat -c "%u:%g" "$f")
+              test "$got" = "1500:1500" || { echo "$f is $got, expected 1500:1500"; exit 1; }
+            done
+
+            # A root owned tree must stay root owned.
+            plain=$(mktemp -d); mkdir -p "$plain/etc/firefox"
+            FOXPRIVACY_ROOT="$plain" install/foxprivacy.sh --profile standard >/dev/null
+            got=$(stat -c "%u:%g" "$plain/etc/firefox/policies")
+            test "$got" = "0:0" || { echo "root tree became $got"; exit 1; }
+
             echo ok
           '
 
