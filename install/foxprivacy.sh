@@ -453,15 +453,36 @@ cmd_install() {
   ignore the policy file if it cannot read this directory. Consider:
     sudo chmod 755 \"$dir\""
     fi
-  elif ! (umask 022 && mkdir -p "$dir") 2>/dev/null; then
-    die "cannot create $dir
+  else
+    mkdir_error=$( (umask 022 && mkdir -p "$dir") 2>&1 ) || cannot_create=1
+    if [ "${cannot_create:-0}" = "1" ]; then
+      # Telling somebody to use sudo when they already did is worse than saying
+      # nothing. Root and non-root are genuinely different problems here.
+      if [ "$(id -u)" = "0" ]; then
+        die "cannot create $dir, and this is already running as root.
+  $mkdir_error
+  On macOS this is normally App Management protection: since Ventura, changing
+  another application's bundle is refused even for root unless the program doing
+  it has been granted permission. Either grant your terminal App Management in
+  System Settings, Privacy and Security, App Management, or install somewhere
+  else with --target.
+  Please report what you see: https://github.com/andreas-glaser/FoxPrivacy/issues"
+      fi
+      die "cannot create $dir
+  $mkdir_error
   This needs root. Re-run with sudo:
-    sudo $0 $ORIGINAL_ARGS"
+    sudo sh $0 $ORIGINAL_ARGS"
+    fi
   fi
   if [ ! -w "$dir" ]; then
+    if [ "$(id -u)" = "0" ]; then
+      die "cannot write to $dir, and this is already running as root.
+  On macOS this is normally App Management protection. See
+  https://github.com/andreas-glaser/FoxPrivacy/issues"
+    fi
     die "cannot write to $dir
   This needs root. Re-run with sudo:
-    sudo $0 $ORIGINAL_ARGS"
+    sudo sh $0 $ORIGINAL_ARGS"
   fi
 
   # Back up anything we did not write ourselves. A file we installed is
@@ -524,7 +545,7 @@ cmd_uninstall() {
   if [ ! -w "$(dirname "$recorded_target")" ]; then
     die "cannot write to $(dirname "$recorded_target")
   This needs root. Re-run with sudo:
-    sudo $0 $ORIGINAL_ARGS"
+    sudo sh $0 $ORIGINAL_ARGS"
   fi
 
   if [ -n "$backup" ] && [ -f "$backup" ]; then
