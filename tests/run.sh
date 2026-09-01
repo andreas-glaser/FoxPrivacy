@@ -588,6 +588,21 @@ before=$(sum256 "$target")
 FOXPRIVACY_STATE_DIR=/proc/nope/foxprivacy "$INSTALLER" --profile standard >/dev/null 2>&1
 check "and restores what was there before" "$before" "$(sum256 "$target" 2>/dev/null)"
 
+# A record we cannot parse must stop us. Treating it as empty made uninstall
+# report "OK removed " for the empty string, exit 0, and delete the record,
+# which would orphan whatever was actually installed.
+rm -rf "$root"; mkdir -p "$(dirname "$target")" "$(dirname "$state")"
+printf '%s\n' '{"policies":{"DisableDeveloperTools":true}}' > "$target"
+printf 'garbage\n' > "$state"
+"$INSTALLER" --uninstall >/dev/null 2>&1
+check "uninstall refuses an unreadable record" "1" "$?"
+[ -f "$state" ] && ok "and keeps the record instead of deleting it" ||
+  not_ok "and keeps the record instead of deleting it"
+[ -f "$target" ] && ok "and leaves the policy file alone" ||
+  not_ok "and leaves the policy file alone"
+"$INSTALLER" --verify >/dev/null 2>&1
+check "verify refuses an unreadable record" "1" "$?"
+
 # ----------------------------------------------------------------- macos ----
 
 section "macos path logic"

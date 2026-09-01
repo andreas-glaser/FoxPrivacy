@@ -242,6 +242,30 @@ $null = Invoke-Installer -Arguments @('-Profile', 'standard', '-DryRun') -Env @{
 if (-not (Test-Path $target)) { Test-Ok 'dry run writes nothing' } else { Test-Fail 'dry run writes nothing' }
 Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
 
+# ---------------------------------------------------------- broken record ----
+
+Test-Section 'an unreadable record'
+
+$root = Join-Path ([IO.Path]::GetTempPath()) ("fp-" + [Guid]::NewGuid().ToString('N'))
+$target = Join-Path $root 'Program Files\Mozilla Firefox\distribution\policies.json'
+$state = Join-Path $root 'ProgramData\FoxPrivacy\state'
+$envRoot = @{ FOXPRIVACY_ROOT = $root }
+$null = New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force
+$null = New-Item -ItemType Directory -Path (Split-Path -Parent $state) -Force
+[IO.File]::WriteAllText($target, '{"policies":{"DisableDeveloperTools":true}}')
+[IO.File]::WriteAllText($state, "garbage`n")
+
+Test-Check 'uninstall refuses an unreadable record' 1 `
+    (Invoke-Installer -Arguments @('-Uninstall') -Env $envRoot).ExitCode
+if (Test-Path $state) { Test-Ok 'and keeps the record instead of deleting it' }
+else { Test-Fail 'and keeps the record instead of deleting it' }
+if (Test-Path $target) { Test-Ok 'and leaves the policy file alone' }
+else { Test-Fail 'and leaves the policy file alone' }
+Test-Check 'verify refuses an unreadable record' 1 `
+    (Invoke-Installer -Arguments @('-Verify') -Env $envRoot).ExitCode
+
+Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+
 # ------------------------------------------------------------ no terminal ----
 
 Test-Section 'without a terminal'

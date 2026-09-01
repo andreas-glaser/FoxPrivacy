@@ -305,6 +305,14 @@ state_get() {
 
 state_get_or_empty() { state_get "$1" 2>/dev/null || printf ''; }
 
+check_state() {
+  [ -n "$1" ] && [ -n "$2" ] && return 0
+  die "the record at $(state_file) is incomplete or unreadable.
+  FoxPrivacy will not act on a record it cannot understand, because it cannot
+  tell which file is ours. Inspect that file, and if the policy file at the
+  platform default is yours to remove, remove both by hand."
+}
+
 write_state() {
   dir=$(default_state_dir)
   (umask 022 && mkdir -p "$dir") 2>/dev/null || return 1
@@ -378,6 +386,7 @@ cmd_verify() {
 
   recorded_target=$(state_get target)
   recorded_sha=$(state_get sha256)
+  check_state "$recorded_target" "$recorded_sha"
 
   if [ ! -f "$recorded_target" ]; then
     printf '%smissing%s\n' "$C_RED" "$C_RESET"
@@ -540,6 +549,15 @@ cmd_uninstall() {
   recorded_target=$(state_get target)
   backup=$(state_get backup)
   recorded_sha=$(state_get sha256)
+  check_state "$recorded_target" "$recorded_sha"
+
+  # Removing the record is part of uninstalling. Finding out it is not writable
+  # after the policy file is already gone leaves the same mess as a half install.
+  if [ ! -w "$(default_state_dir)" ]; then
+    die "cannot write to $(default_state_dir)
+  This needs root. Re-run with sudo:
+    sudo sh $0 $ORIGINAL_ARGS"
+  fi
 
   if [ -f "$recorded_target" ] && [ "$(sha256 "$recorded_target")" != "$recorded_sha" ] &&
      [ "$FORCE" != "1" ]; then

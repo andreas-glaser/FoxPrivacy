@@ -18,6 +18,15 @@ major, minor, or patch change in a configuration tool.
   explains what is actually refusing the write
 
 ### Fixed
+- The Windows installer had the same half-install defect as the shell one, and
+  now undoes the write if the record cannot be saved
+- A record that could not be parsed was treated as an empty one. Uninstall
+  reported `OK removed` for the empty string, exited successfully, and deleted
+  the record, which would orphan whatever was actually installed. Both
+  installers now refuse to act on a record they cannot understand, and leave it
+  in place
+- Uninstall checks it can write the record before removing the policy file,
+  rather than discovering it afterwards
 - An install could write the policy file and then fail to record itself, leaving
   a machine with a policy file the tool would not remove because it could not
   prove it wrote it. Found on a real Mac, where the application bundle was

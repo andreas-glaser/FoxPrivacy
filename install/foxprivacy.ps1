@@ -368,6 +368,17 @@ function Get-StateValue {
     return $State[$Key]
 }
 
+function Assert-StateUsable {
+    param([string]$TargetPath, [string]$Sha)
+    if ($TargetPath -and $Sha) { return }
+    Stop-WithError @"
+the record at $(Get-StateFile) is incomplete or unreadable.
+  FoxPrivacy will not act on a record it cannot understand, because it cannot
+  tell which file is ours. Inspect that file and remove both by hand if the
+  policy file is yours to remove.
+"@
+}
+
 function Write-State {
     param([string]$Prof, [string]$TargetPath, [string]$Backup, [string]$Sha, [string[]]$Selected)
     $dir = Get-StateDir
@@ -438,6 +449,7 @@ function Invoke-Verify {
 
     $recordedTarget = Get-StateValue $state 'target'
     $recordedSha = Get-StateValue $state 'sha256'
+    Assert-StateUsable $recordedTarget $recordedSha
 
     if (-not (Test-Path -LiteralPath $recordedTarget)) {
         Write-Host 'missing' -ForegroundColor Red
@@ -538,7 +550,23 @@ cannot write $TargetPath
 "@
     }
 
-    Write-State -Prof $Prof -TargetPath $TargetPath -Backup $backup -Sha (Get-Sha256 $TargetPath) -Selected $Selected
+    try {
+        Write-State -Prof $Prof -TargetPath $TargetPath -Backup $backup `
+            -Sha (Get-Sha256 $TargetPath) -Selected $Selected
+    } catch {
+        # A policy file we cannot prove we wrote is one uninstall will refuse to
+        # remove, so undo rather than leave it.
+        if ($backup -and (Test-Path -LiteralPath $backup)) {
+            Move-Item -LiteralPath $backup -Destination $TargetPath -Force -ErrorAction SilentlyContinue
+        } elseif (Test-Path -LiteralPath $TargetPath) {
+            Remove-Item -LiteralPath $TargetPath -Force -ErrorAction SilentlyContinue
+        }
+        Stop-WithError @"
+could not record the install in $(Get-StateDir), so it was undone.
+  Nothing has been changed. This usually means PowerShell is not running as
+  Administrator.
+"@
+    }
 
     Write-Ok "installed the $Prof profile to $TargetPath"
     Write-Info "$($Selected.Count) features enabled"
@@ -566,6 +594,7 @@ there is a policies.json at $TargetPath but FoxPrivacy has no record of
     $recordedTarget = Get-StateValue $state 'target'
     $backup = Get-StateValue $state 'backup'
     $recordedSha = Get-StateValue $state 'sha256'
+    Assert-StateUsable $recordedTarget $recordedSha
 
     if ((Test-Path -LiteralPath $recordedTarget) -and (Get-Sha256 $recordedTarget) -ne $recordedSha -and -not $Force) {
         Stop-WithError @"
