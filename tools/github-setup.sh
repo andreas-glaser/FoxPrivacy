@@ -13,12 +13,18 @@ set -eu
 
 REPO="${FOXPRIVACY_REPO:-andreas-glaser/foxprivacy}"
 APPLY=0
+DO_SETTINGS=1
+DO_PROTECTION=1
 
 usage() {
   cat <<HELP
-Usage: $0 [--apply]
+Usage: $0 [--apply] [--settings-only | --protection-only]
 
-  --apply   actually make the changes. Without it, nothing is changed.
+  --apply            actually make the changes. Without it, nothing changes.
+  --settings-only    description, topics, merge behaviour, vulnerability reports
+  --protection-only  branch protection for main and dev
+
+Branches must exist before they can be protected, so push main and dev first.
 
 Set FOXPRIVACY_REPO to target a different repository.
 HELP
@@ -27,6 +33,8 @@ HELP
 while [ $# -gt 0 ]; do
   case "$1" in
     --apply) APPLY=1 ;;
+    --settings-only) DO_PROTECTION=0 ;;
+    --protection-only) DO_SETTINGS=0 ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'unknown option: %s\n' "$1" >&2; usage; exit 1 ;;
   esac
@@ -48,10 +56,10 @@ run() {
 # blocks every pull request forever, so these must match the workflow exactly.
 CHECKS='"Tests on ubuntu-latest","Tests on macos-latest","Tests on windows-latest","Shellcheck","Runs without jq or python","Single file build"'
 
+if [ "$DO_SETTINGS" = "1" ]; then
 printf '== repository settings\n'
 run gh repo edit "$REPO" \
-  --description "Turn off Firefox telemetry, sponsored content and nagging without breaking Firefox. Official enterprise policies, no dependencies, one command to undo." \
-  --homepage "https://github.com/$REPO" \
+  --description "Turn off Firefox telemetry, sponsored content and nagging without breaking Firefox. Official enterprise policies, no dependencies on any platform, one command to undo." \
   --enable-wiki=false \
   --enable-projects=false \
   --enable-issues=true \
@@ -59,15 +67,26 @@ run gh repo edit "$REPO" \
   --add-topic firefox \
   --add-topic privacy \
   --add-topic telemetry \
+  --add-topic enterprise-policies \
   --add-topic policies \
   --add-topic hardening \
   --add-topic shell \
+  --add-topic posix \
   --add-topic powershell \
-  --add-topic cross-platform
+  --add-topic cross-platform \
+  --add-topic linux \
+  --add-topic macos \
+  --add-topic windows
 
 printf '\n== private vulnerability reporting\n'
 # SECURITY.md sends people to the advisory form, so it has to be switched on.
 run gh api -X PUT "repos/$REPO/private-vulnerability-reporting"
+fi
+
+if [ "$DO_PROTECTION" = "0" ]; then
+  printf '\nNothing else requested.\n'
+  exit 0
+fi
 
 printf '\n== branch protection: main\n'
 # Admins are deliberately not included. The documented release process merges
