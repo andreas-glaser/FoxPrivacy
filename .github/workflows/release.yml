@@ -88,9 +88,11 @@ jobs:
           set -eu
           tag="${{ github.event.inputs.tag || github.ref_name }}"
           version="${tag#v}"
+          # Stop at the next version heading, and also at the link reference
+          # block at the foot of the file, which is not release notes.
           awk -v v="$version" '
             $0 ~ "^## \\[" v "\\]" { inside = 1; next }
-            inside && /^## \[/ { exit }
+            inside && (/^## \[/ || /^\[[^]]+\]: /) { exit }
             inside { print }
           ' CHANGELOG.md > notes.md
           {
