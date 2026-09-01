@@ -45,10 +45,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
-      - name: Install shellcheck
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      # Pinned rather than whatever apt has: a linter that differs between here
+      # and a contributor's machine turns "passes locally" into a coin toss.
       - name: Lint every shell script in the repository
-        run: shellcheck install/*.sh tests/*.sh tools/*.sh
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            koalaman/shellcheck:v0.11.0 install/*.sh tests/*.sh tools/*.sh
       - name: Check the python tooling parses
         run: python3 -m py_compile tools/*.py
       - name: Check the documentation has not drifted

@@ -574,8 +574,9 @@ cmd_install() {
   # left behind rather than leaving two. Best effort: it may need root, and
   # failing to tidy up is not a reason to fail the install.
   if [ "$(legacy_state_file)" != "$(state_file)" ] && [ -f "$(legacy_state_file)" ]; then
-    rm -f "$(legacy_state_file)" 2>/dev/null &&
+    if rm -f "$(legacy_state_file)" 2>/dev/null; then
       rmdir "$(default_state_dir)" 2>/dev/null || true
+    fi
   fi
 
   ok "installed the $profile profile to $target"
