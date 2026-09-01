@@ -47,7 +47,7 @@ not invent a variant.
    gh run list --limit 5
    gh run view  # interactive selection
    ```
-   - Or manually: https://github.com/andreas-glaser/foxprivacy/actions
+   - Or manually: https://github.com/andreas-glaser/FoxPrivacy/actions
    - Ensure the latest commit is green before creating release tags; never push
      a tag while CI is red.
 
@@ -73,7 +73,7 @@ release with any of them gets extra scrutiny.
 - `feat: add --verify to the Linux installer`
 - `fix: restore the backup when uninstall runs twice`
 - `docs: explain the macOS app bundle update caveat`
-- `chore: bump version to 0.2.0`
+- `chore: bump version to 1.1.0`
 
 ## Rules
 - Use imperative mood ("add" not "added")

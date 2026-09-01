@@ -53,5 +53,5 @@ can serve different bytes to `curl` than it shows in a browser.
 There is no `curl | sh` install command for FoxPrivacy and there will not be
 one.
 
-[gh-report]: https://github.com/andreas-glaser/foxprivacy/security/advisories/new
+[gh-report]: https://github.com/andreas-glaser/FoxPrivacy/security/advisories/new
 [moz-security]: https://www.mozilla.org/security/

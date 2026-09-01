@@ -11,7 +11,7 @@
 
 set -eu
 
-REPO="${FOXPRIVACY_REPO:-andreas-glaser/foxprivacy}"
+REPO="${FOXPRIVACY_REPO:-andreas-glaser/FoxPrivacy}"
 APPLY=0
 DO_SETTINGS=1
 DO_PROTECTION=1

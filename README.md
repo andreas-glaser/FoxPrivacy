@@ -52,13 +52,13 @@ Windows needs only the PowerShell that ships with it.
 **Linux and macOS**
 
 ```sh
-curl -fsSLo foxprivacy.sh https://github.com/andreas-glaser/foxprivacy/releases/latest/download/foxprivacy.sh && sudo sh foxprivacy.sh
+curl -fsSLo foxprivacy.sh https://github.com/andreas-glaser/FoxPrivacy/releases/latest/download/foxprivacy.sh && sudo sh foxprivacy.sh
 ```
 
 **Windows** - right click Windows PowerShell, choose Run as administrator, then:
 
 ```powershell
-irm https://github.com/andreas-glaser/foxprivacy/releases/latest/download/foxprivacy.ps1 -OutFile "$env:TEMP\foxprivacy.ps1"; powershell -ExecutionPolicy Bypass -File "$env:TEMP\foxprivacy.ps1"
+irm https://github.com/andreas-glaser/FoxPrivacy/releases/latest/download/foxprivacy.ps1 -OutFile "$env:TEMP\foxprivacy.ps1"; powershell -ExecutionPolicy Bypass -File "$env:TEMP\foxprivacy.ps1"
 ```
 
 Both download a single file and then run it. Neither pipes anything into a

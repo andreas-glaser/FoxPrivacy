@@ -43,8 +43,8 @@ git config --global fetch.prune true
 
 Clone and track branches:
 ```bash
-git clone git@github.com:andreas-glaser/foxprivacy.git
-cd foxprivacy
+git clone git@github.com:andreas-glaser/FoxPrivacy.git
+cd FoxPrivacy
 
 # Ensure local tracking branch for dev
 git fetch origin dev:dev
@@ -54,7 +54,7 @@ git checkout dev
 Keep your fork up to date (if contributing via a fork):
 ```bash
 # Add upstream once
-git remote add upstream git@github.com:andreas-glaser/foxprivacy.git
+git remote add upstream git@github.com:andreas-glaser/FoxPrivacy.git
 
 # Update your local main and dev
 git fetch upstream
@@ -123,12 +123,12 @@ the manifest by `tools/gen-docs.sh`, so never edit it by hand.
 There is no build artifact to regenerate, only text files that must agree:
 
 ```bash
-echo "0.2.0" > VERSION
-# install/foxprivacy.sh   -> FOXPRIVACY_VERSION="0.2.0"
-# install/foxprivacy.ps1  -> $FoxPrivacyVersion = '0.2.0'
+echo "1.1.0" > VERSION
+# install/foxprivacy.sh   -> FOXPRIVACY_VERSION="1.1.0"
+# install/foxprivacy.ps1  -> $FoxPrivacyVersion = '1.1.0'
 # Update CHANGELOG.md under [Unreleased]
 git add VERSION install/foxprivacy.sh install/foxprivacy.ps1 CHANGELOG.md
-git commit -m "chore: bump version to 0.2.0"
+git commit -m "chore: bump version to 1.1.0"
 ```
 
 `tests/run.sh` asserts these versions match. A mismatch fails the build rather
@@ -161,12 +161,12 @@ Create an annotated tag and push:
 # Ensure dev is merged into main first
 git checkout main
 git pull --rebase origin main
-git merge --no-ff dev -m "Merge dev for v0.2.0 release"
+git merge --no-ff dev -m "Merge dev for v1.1.0 release"
 git push origin main
 
 # Tag the release (annotated)
-git tag -a v0.2.0 -m "Release v0.2.0"
-git push origin v0.2.0
+git tag -a v1.1.0 -m "Release v1.1.0"
+git push origin v1.1.0
 ```
 
 What happens next:
@@ -182,7 +182,7 @@ moving `main` away from the latest stable version.
 
 Manual release (workflow dispatch):
 ```bash
-# Actions -> Release -> Run workflow -> version: v0.2.0
+# Actions -> Release -> Run workflow -> version: v1.1.0
 ```
 
 ## Forward-Merging Hotfixes
@@ -192,7 +192,7 @@ aligned:
 ```bash
 git checkout dev
 git pull --rebase origin dev
-git merge --no-ff main -m "Merge main into dev after v0.2.1 hotfix"
+git merge --no-ff main -m "Merge main into dev after v1.1.1 hotfix"
 git push origin dev
 ```
 

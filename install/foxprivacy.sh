@@ -291,7 +291,7 @@ warn_alternate_packaging() {
   Policies are written to the system location, which the distribution package
   reads. Whether the $found build reads it too is not confirmed by this project.
   After installing, open about:policies and check the Active tab is not empty.
-  Please report what you find: https://github.com/andreas-glaser/foxprivacy/issues"
+  Please report what you find: https://github.com/andreas-glaser/FoxPrivacy/issues"
 }
 
 # ------------------------------------------------------------------ state ----

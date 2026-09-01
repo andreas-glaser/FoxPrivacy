@@ -64,7 +64,7 @@ For the maintainer cutting a release. Contributors want
      git diff "${last_tag}..HEAD" -- policies/
      ```
    - Optionally include a compare link:
-     `https://github.com/andreas-glaser/foxprivacy/compare/${last_tag}...vX.Y.Z`
+     `https://github.com/andreas-glaser/FoxPrivacy/compare/${last_tag}...vX.Y.Z`
    - Update the reference links at the bottom of `CHANGELOG.md`:
      - Change `[Unreleased]` to compare from the new tag: `.../compare/vX.Y.Z...HEAD`
      - Add a new reference for `[X.Y.Z]` comparing `${last_tag}...vX.Y.Z`
@@ -125,7 +125,7 @@ For the maintainer cutting a release. Contributors want
     gh workflow view "Release"
     gh run list --workflow="Release" --limit 3
     ```
-    - Or manually: https://github.com/andreas-glaser/foxprivacy/actions
+    - Or manually: https://github.com/andreas-glaser/FoxPrivacy/actions
     - Only proceed to tagging once the release-prep commit on `main` is green.
 
 ## Post-Release

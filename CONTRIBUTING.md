@@ -36,8 +36,8 @@ Two rules decide most policy questions:
 There is nothing to build and no runtime to install.
 
 ```bash
-git clone git@github.com:andreas-glaser/foxprivacy.git
-cd foxprivacy
+git clone git@github.com:andreas-glaser/FoxPrivacy.git
+cd FoxPrivacy
 git fetch origin dev:dev && git checkout dev
 ```
 

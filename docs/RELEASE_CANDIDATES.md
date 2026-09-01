@@ -17,7 +17,7 @@ carrying a `policy:` commit goes through an RC.
 
 ## Version and branch policy
 
-- Use `vX.Y.Z-rc.N`, for example `v0.2.0-rc.1`.
+- Use `vX.Y.Z-rc.N`, for example `v1.1.0-rc.1`.
 - Start `release/X.Y.Z` from the tested `origin/dev` commit.
 - Keep `main` on the latest stable release until the final version is ready.
 - Never move or reuse an RC tag. Publish `rc.2` if another candidate is needed.
@@ -38,24 +38,24 @@ Replace the example version in these commands:
 
 ```bash
 git fetch origin
-git switch -c release/0.2.0 origin/dev
+git switch -c release/1.1.0 origin/dev
 
-# Update VERSION, both installers, and CHANGELOG.md to 0.2.0-rc.1.
+# Update VERSION, both installers, and CHANGELOG.md to 1.1.0-rc.1.
 
 tests/run.sh
 shellcheck install/*.sh tests/*.sh tools/*.sh
 git diff --check
 
 git add VERSION CHANGELOG.md install/foxprivacy.sh install/foxprivacy.ps1
-git commit -m "chore: prepare v0.2.0-rc.1"
-git push -u origin release/0.2.0
+git commit -m "chore: prepare v1.1.0-rc.1"
+git push -u origin release/1.1.0
 ```
 
 Wait for CI to pass on the release branch. Then tag that exact commit:
 
 ```bash
-git tag -a v0.2.0-rc.1 -m "Release candidate v0.2.0-rc.1"
-git push origin v0.2.0-rc.1
+git tag -a v1.1.0-rc.1 -m "Release candidate v1.1.0-rc.1"
+git push origin v1.1.0-rc.1
 ```
 
 Confirm that:
@@ -105,11 +105,11 @@ There is no update channel to opt into. A tester downloads the prerelease and
 runs it, which also means an RC never reaches anyone who did not go looking:
 
 ```bash
-gh release download v0.2.0-rc.1 --dir ~/fp-rc
+gh release download v1.1.0-rc.1 --dir ~/fp-rc
 cd ~/fp-rc
 sha256sum -c SHA256SUMS          # shasum -a 256 -c SHA256SUMS on macOS
-tar xzf foxprivacy-v0.2.0-rc.1.tar.gz
-cd foxprivacy-v0.2.0-rc.1
+tar xzf foxprivacy-v1.1.0-rc.1.tar.gz
+cd foxprivacy-v1.1.0-rc.1
 ./install/foxprivacy.sh --dry-run --profile standard
 ./install/foxprivacy.sh --profile standard
 ```

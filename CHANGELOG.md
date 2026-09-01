@@ -124,5 +124,5 @@ major, minor, or patch change in a configuration tool.
 - App updates, Sync, the password manager, DNS-over-HTTPS, and Encrypted Client
   Hello are deliberately untouched, and a test asserts they stay that way.
 
-[Unreleased]: https://github.com/andreas-glaser/foxprivacy/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/andreas-glaser/foxprivacy/releases/tag/v1.0.0
+[Unreleased]: https://github.com/andreas-glaser/FoxPrivacy/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/andreas-glaser/FoxPrivacy/releases/tag/v1.0.0
