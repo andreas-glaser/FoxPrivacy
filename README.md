@@ -8,9 +8,11 @@ list of settings and puts it where Firefox reads it. It backs up whatever was
 there before and removes itself cleanly. Linux, macOS, and Windows, with nothing
 to install first.
 
-> **Status: complete, not yet released.** Linux, macOS and Windows installers
-> are built and covered by tests. Nothing has been published yet, so the
-> download links below do not resolve until the first release is tagged.
+> **1.0.0.** Every test passes on Linux, macOS and Windows runners, and the
+> Linux build has been checked against a real Firefox 154 with an empty
+> `about:policies` Errors tab. On macOS and Windows the policy file lives inside
+> the application, so a Firefox update can remove it; `--verify` tells you if
+> that has happened.
 
 ## Why policies instead of about:config
 

@@ -41,6 +41,14 @@ jobs:
           grep -q "^## \[$version\]" CHANGELOG.md || {
             echo "CHANGELOG.md has no '## [$version]' section"; exit 1; }
 
+          # The README's status banner says there is no release yet. Once this
+          # workflow runs, that is untrue, and nobody would remember to change
+          # it. Refuse rather than publish a front page that contradicts itself.
+          if grep -qiE 'awaiting its first tag|not yet released|will 404' README.md; then
+            echo "README.md still says there is no release. Update the status banner first."
+            exit 1
+          fi
+
   release:
     name: Build and publish
     needs: verify
