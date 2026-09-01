@@ -64,7 +64,7 @@ $script:TargetPathForState = ''
 # Whether this run created the directory, and so whether it should remove it.
 $script:CreatedDir = $false
 
-$FoxPrivacyVersion = '1.0.0'
+$FoxPrivacyVersion = '1.1.0'
 
 # --------------------------------------------------------------- output ----
 

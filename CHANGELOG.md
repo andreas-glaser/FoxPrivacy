@@ -12,6 +12,8 @@ major, minor, or patch change in a configuration tool.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-01
+
 ### Fixed
 - The installer told macOS users to re-run with `sudo` when they already had.
   It now prints the underlying error, and when it is already running as root it
@@ -194,5 +196,6 @@ major, minor, or patch change in a configuration tool.
 - App updates, Sync, the password manager, DNS-over-HTTPS, and Encrypted Client
   Hello are deliberately untouched, and a test asserts they stay that way.
 
-[Unreleased]: https://github.com/andreas-glaser/FoxPrivacy/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/andreas-glaser/FoxPrivacy/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/andreas-glaser/FoxPrivacy/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/andreas-glaser/FoxPrivacy/releases/tag/v1.0.0
