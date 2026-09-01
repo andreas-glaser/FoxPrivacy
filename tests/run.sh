@@ -428,8 +428,22 @@ section "install cycle"
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 export FOXPRIVACY_ROOT="$root"
-target="$root/etc/firefox/policies/policies.json"
-state="$root/var/lib/foxprivacy/state"
+case "$(uname -s)" in
+  Darwin)
+    target_rel="Applications/Firefox.app/Contents/Resources/distribution/policies.json"
+    state_rel="Library/Application Support/FoxPrivacy/state"
+    parent_rel="Applications/Firefox.app/Contents/Resources"
+    state_dir_rel="Library/Application Support/FoxPrivacy"
+    ;;
+  *)
+    target_rel="etc/firefox/policies/policies.json"
+    state_rel="var/lib/foxprivacy/state"
+    parent_rel="etc/firefox"
+    state_dir_rel="var/lib/foxprivacy"
+    ;;
+esac
+target="$root/$target_rel"
+state="$root/$state_rel"
 
 "$INSTALLER" --profile standard >/dev/null 2>&1
 check "install exits cleanly" "0" "$?"
@@ -446,11 +460,11 @@ check "installed file matches the recorded checksum" \
 "$INSTALLER" --verify >/dev/null 2>&1
 check "verify reports a clean install" "0" "$?"
 check "a fresh install creates no backup" "0" \
-  "$(find "$root/etc" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
+  "$(find "$root" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
 
 "$INSTALLER" --profile strict >/dev/null 2>&1
 check "reinstalling over our own file creates no backup" "0" \
-  "$(find "$root/etc" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
+  "$(find "$root" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
 check "reinstall updates the recorded profile" "strict" "$(sed -n 's/^profile=//p' "$state")"
 
 printf 'tampered\n' >> "$target"
@@ -476,7 +490,7 @@ printf '%s\n' '{"policies":{"DisableDeveloperTools":true}}' > "$target"
 existing_sum=$(sum256 "$target")
 
 "$INSTALLER" --profile standard >/dev/null 2>&1
-backup=$(find "$root/etc" -name '*.foxprivacy-backup-*' | head -1)
+backup=$(find "$root" -name '*.foxprivacy-backup-*' | head -1)
 if [ -n "$backup" ]; then ok "an existing policies.json is backed up"
 else not_ok "an existing policies.json is backed up"; fi
 check "the backup is byte identical to what was there" "$existing_sum" \
@@ -487,13 +501,13 @@ check "state records the backup path" "$backup" "$(sed -n 's/^backup=//p' "$stat
 check "reinstalling keeps pointing at the original backup" "$backup" \
   "$(sed -n 's/^backup=//p' "$state")"
 check "reinstalling does not create a second backup" "1" \
-  "$(find "$root/etc" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
+  "$(find "$root" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
 
 "$INSTALLER" --uninstall >/dev/null 2>&1
 check "uninstall restores the original file byte for byte" "$existing_sum" \
   "$(sum256 "$target" 2>/dev/null)"
 check "uninstall leaves no backup behind" "0" \
-  "$(find "$root/etc" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
+  "$(find "$root" -name '*.foxprivacy-backup-*' | wc -l | tr -d ' ')"
 
 # ------------------------------------------------------- foreign policies ----
 
@@ -518,7 +532,7 @@ section "guards"
 
 rm -rf "$root"; mkdir -p "$(dirname "$target")"
 "$INSTALLER" --profile standard >/dev/null 2>&1
-alt="$root/etc/firefox/policies/other.json"
+alt="$(dirname "$target")/other.json"
 "$INSTALLER" --target "$alt" --profile standard >/dev/null 2>&1
 check "installing to a second target is refused" "1" "$?"
 if [ ! -f "$alt" ]; then ok "the second target is not written"
@@ -536,8 +550,8 @@ umask 077
 umask 022
 check "the policy directory it creates is readable" "755" \
   "$(file_mode "$(dirname "$target")")"
-check "and so is every parent it created" "755" "$(file_mode "$root/etc/firefox")"
-check "the state directory it creates is readable" "755" "$(file_mode "$root/var/lib/foxprivacy")"
+check "and so is every parent it created" "755" "$(file_mode "$root/$parent_rel")"
+check "the state directory it creates is readable" "755" "$(file_mode "$root/$state_dir_rel")"
 check "the state file it writes is readable" "644" "$(file_mode "$state")"
 
 # A directory somebody else made is left alone, but the user is warned that
@@ -617,7 +631,7 @@ FOXPRIVACY_ROOT="$sf_root" "$sandbox/foxprivacy.sh" --verify >/dev/null 2>&1
 check "the single file verifies" "0" "$?"
 FOXPRIVACY_ROOT="$sf_root" "$sandbox/foxprivacy.sh" --uninstall >/dev/null 2>&1
 check "the single file uninstalls" "0" "$?"
-if [ ! -f "$sf_root/etc/firefox/policies/policies.json" ]
+if [ ! -f "$sf_root/$target_rel" ]
 then ok "and leaves nothing behind"; else not_ok "and leaves nothing behind"; fi
 
 if [ -f "$dist_dir/foxprivacy.ps1" ]
