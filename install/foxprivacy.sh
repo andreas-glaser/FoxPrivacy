@@ -22,6 +22,7 @@ ROOT="${FOXPRIVACY_ROOT:-}"
 
 DRY_RUN=0
 FORCE=0
+CREATED_DIR=0
 TARGET=""
 ORIGINAL_ARGS=""
 
@@ -361,6 +362,7 @@ write_state() {
     printf 'backup=%s\n' "$3"
     printf 'sha256=%s\n' "$4"
     printf 'features=%s\n' "$5"
+    printf 'created_dir=%s\n' "${CREATED_DIR:-0}"
   } > "$(state_file)" 2>/dev/null || return 1
   chmod 644 "$(state_file)"
   match_parent_owner "$(state_file)"
@@ -503,7 +505,10 @@ cmd_install() {
     fi
   else
     mkdir_error=$( (umask 022 && mkdir -p "$dir") 2>&1 ) || cannot_create=1
-    [ "${cannot_create:-0}" = "1" ] || match_parent_owner "$dir"
+    if [ "${cannot_create:-0}" != "1" ]; then
+      CREATED_DIR=1
+      match_parent_owner "$dir"
+    fi
     if [ "${cannot_create:-0}" = "1" ]; then
       # Telling somebody to use sudo when they already did is worse than saying
       # nothing. Root and non-root are genuinely different problems here.
@@ -632,7 +637,15 @@ cmd_uninstall() {
     [ -n "$backup" ] && warn "the recorded backup $backup is gone, so nothing was restored"
   fi
 
+  _created_dir=$(state_get_or_empty created_dir)
   rm -f "$(active_state_file)"
+
+  # A directory we created, now empty, is one we should take away. Leaving it
+  # behind is how a single root install makes every later one need root too.
+  if [ "$_created_dir" = "1" ]; then
+    rmdir "$(dirname "$recorded_target")" 2>/dev/null || true
+  fi
+
   # Tidy away the system directory older versions used, if it is now empty.
   rmdir "$(default_state_dir)" 2>/dev/null || true
   printf '\n%sRestart Firefox. about:policies should now be empty.%s\n' "$C_DIM" "$C_RESET"

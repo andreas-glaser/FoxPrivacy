@@ -35,6 +35,10 @@ major, minor, or patch change in a configuration tool.
   directories are checked before anything is written
 
 ### Changed
+- Uninstall removes the directory it created, when it created it and nothing
+  else is in it. Leaving an empty root owned directory behind was the other half
+  of the sudo problem: it sat inside an application bundle that otherwise
+  belongs to the user, so every later install needed root as well
 - Files created while running as root now match the ownership of the directory
   they are created in. Installing once with `sudo` used to leave a root owned
   directory inside an application bundle that belongs to you, which made `sudo`

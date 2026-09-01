@@ -61,6 +61,9 @@ $ErrorActionPreference = 'Stop'
 # Set once the target is known; the record is written beside it.
 $script:TargetPathForState = ''
 
+# Whether this run created the directory, and so whether it should remove it.
+$script:CreatedDir = $false
+
 $FoxPrivacyVersion = '1.0.0'
 
 # --------------------------------------------------------------- output ----
@@ -410,7 +413,8 @@ function Write-State {
         "target=$TargetPath",
         "backup=$Backup",
         "sha256=$Sha",
-        "features=$($Selected -join ' ')"
+        "features=$($Selected -join ' ')",
+        "created_dir=$(if ($script:CreatedDir) { '1' } else { '0' })"
     )
     Write-TextFile -Path (Get-StateFile) -Content (($lines -join "`n") + "`n")
 }
@@ -532,6 +536,7 @@ FoxPrivacy is already installed at $priorTarget.
     try {
         if (-not (Test-Path -LiteralPath $dir)) {
             [void](New-Item -ItemType Directory -Path $dir -Force -ErrorAction Stop)
+            $script:CreatedDir = $true
         }
     } catch {
         Stop-WithError @"
@@ -651,7 +656,16 @@ cannot change $recordedTarget
 "@
     }
 
+    $createdDir = (Get-StateValue $state 'created_dir') -eq '1'
     Remove-Item -LiteralPath (Get-ActiveStateFile) -Force
+
+    # A directory we created, now empty, is one we should take away.
+    if ($createdDir) {
+        $dir = Split-Path -Parent $recordedTarget
+        if ((Test-Path -LiteralPath $dir) -and -not (Get-ChildItem -LiteralPath $dir)) {
+            Remove-Item -LiteralPath $dir -Force -ErrorAction SilentlyContinue
+        }
+    }
     # Tidy away the system directory older versions used, if it is now empty.
     $legacy = Get-LegacyStateDir
     if ((Test-Path -LiteralPath $legacy) -and -not (Get-ChildItem -LiteralPath $legacy)) {

@@ -623,6 +623,22 @@ else not_ok "and leaves the policy file alone"; fi
 "$INSTALLER" --verify >/dev/null 2>&1
 check "verify refuses an unreadable record" "1" "$?"
 
+# Uninstall should leave the machine as it found it. A directory we created and
+# then left behind is how one root install makes every later one need root: on
+# macOS it sits inside an application bundle that otherwise belongs to the user.
+rm -rf "$root"; mkdir -p "$root/$(dirname "$(dirname "$target_rel")")"
+"$INSTALLER" --profile standard >/dev/null 2>&1
+"$INSTALLER" --uninstall >/dev/null 2>&1
+if [ ! -d "$(dirname "$target")" ]; then ok "uninstall removes a directory it created"
+else not_ok "uninstall removes a directory it created"; fi
+
+# One that was already there is not ours to remove.
+rm -rf "$root"; mkdir -p "$(dirname "$target")"
+"$INSTALLER" --profile standard >/dev/null 2>&1
+"$INSTALLER" --uninstall >/dev/null 2>&1
+if [ -d "$(dirname "$target")" ]; then ok "and leaves one that was already there"
+else not_ok "and leaves one that was already there"; fi
+
 # ----------------------------------------------------------------- macos ----
 
 section "macos path logic"
