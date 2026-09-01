@@ -242,6 +242,30 @@ $null = Invoke-Installer -Arguments @('-Profile', 'standard', '-DryRun') -Env @{
 if (-not (Test-Path $target)) { Test-Ok 'dry run writes nothing' } else { Test-Fail 'dry run writes nothing' }
 Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
 
+# ------------------------------------------------------------ no terminal ----
+
+Test-Section 'without a terminal'
+
+# -Profile standard once fell through to the interactive menu and blocked on
+# Read-Host, which is the command the README tells people to run. In CI that
+# hung a job for thirteen minutes. Both halves are pinned here: the profile must
+# install, and a menu with no keyboard must fail instead of waiting.
+$root = Join-Path ([IO.Path]::GetTempPath()) ("fp-" + [Guid]::NewGuid().ToString('N'))
+$target = Join-Path $root 'Program Files\Mozilla Firefox\distribution\policies.json'
+$envRoot = @{ FOXPRIVACY_ROOT = $root }
+
+$r = Invoke-Installer -Arguments @('-Profile', 'standard') -Env $envRoot
+Test-Check '-Profile installs rather than opening the menu' 0 $r.ExitCode
+if (Test-Path $target) { Test-Ok 'and it actually wrote the file' }
+else { Test-Fail 'and it actually wrote the file' $r.Output }
+
+$r = Invoke-Installer -Arguments @() -Env $envRoot
+Test-Check 'no arguments and no terminal exits with an error' 1 $r.ExitCode
+if ($r.Output -match 'needs a terminal') { Test-Ok 'and explains why instead of hanging' }
+else { Test-Fail 'and explains why instead of hanging' $r.Output }
+
+Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+
 # ----------------------------------------------------------------- result ----
 
 Write-Host ''

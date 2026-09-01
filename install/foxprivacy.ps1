@@ -26,7 +26,7 @@
 [CmdletBinding()]
 param(
     [Alias('Profile')]
-    [string]$ProfileName = 'standard',
+    [string]$ProfileName = '',
 
     [string]$Enable = '',
     [string]$Disable = '',
@@ -616,6 +616,16 @@ cannot change $recordedTarget
 function Invoke-Interactive {
     param($Features, [string]$TargetPath)
 
+    # Without a keyboard the menu would block on Read-Host until something
+    # killed it. Say so instead.
+    if ([Console]::IsInputRedirected) {
+        Stop-WithError @"
+the interactive menu needs a terminal, and this one has no input attached.
+  Say what to install instead, for example:
+    .\foxprivacy.ps1 -Profile standard
+"@
+    }
+
     $standard = Get-PresetIds -Features $Features -Preset 'standard'
     $strict = Get-PresetIds -Features $Features -Preset 'strict'
     $selected = @($standard)
@@ -738,13 +748,14 @@ function Invoke-Main {
     if ($Uninstall) { Invoke-Uninstall -TargetPath $targetPath; return 0 }
 
     $noArgs = -not ($Interactive -or $Enable -or $Disable -or $DryRun -or
-                    $PSBoundParameters.ContainsKey('ProfileName') -or
-                    $PSBoundParameters.ContainsKey('Target'))
+                    $ProfileName -or $Target)
 
     if ($Interactive -or $noArgs) {
         Invoke-Interactive -Features $features -TargetPath $targetPath
         return 0
     }
+
+    if (-not $ProfileName) { $ProfileName = 'standard' }
 
     $presetNames = Get-PresetNames -Features $features
     if ($presetNames -notcontains $ProfileName) {

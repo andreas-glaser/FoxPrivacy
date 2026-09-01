@@ -14,6 +14,7 @@ jobs:
   test:
     name: Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -41,6 +42,7 @@ jobs:
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
       - name: Install shellcheck
@@ -49,10 +51,13 @@ jobs:
         run: shellcheck install/*.sh tests/*.sh tools/*.sh
       - name: Check the python tooling parses
         run: python3 -m py_compile tools/*.py
+      - name: Check the documentation has not drifted
+        run: tools/check-drift.py
 
   no-dependencies:
     name: Runs without jq or python
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
 
@@ -95,6 +100,7 @@ jobs:
   windows:
     name: Tests on windows-latest
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
       - name: Record the environment
@@ -114,6 +120,7 @@ jobs:
   single-file:
     name: Single file build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
       - name: Build dist

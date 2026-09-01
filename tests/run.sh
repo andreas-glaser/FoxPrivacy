@@ -655,6 +655,20 @@ else
 fi
 rm -f "$tmp_doc"
 
+# ------------------------------------------------------------------ drift ----
+
+section "documentation drift"
+
+# Prose goes stale silently: a feature is renamed, a preference is replaced by a
+# policy, a file moves, and the docs keep asserting the old thing without
+# anything failing.
+drift=$("$repo_root/tools/check-drift.py" 2>&1)
+if [ -z "$drift" ]; then
+  ok "the documentation still describes the project as it is"
+else
+  not_ok "the documentation still describes the project as it is" "$drift"
+fi
+
 # ----------------------------------------------------------------- result ----
 
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"

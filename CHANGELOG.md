@@ -67,6 +67,15 @@ major, minor, or patch change in a configuration tool.
   to find nearby, so a downloaded installer always does what its own copy says
 
 ### Fixed
+- `foxprivacy.ps1 -Profile standard` opened the interactive menu instead of
+  installing, and then waited on `Read-Host` forever. That is the command the
+  README tells Windows users to run, and it hung a CI job for thirteen minutes
+  before anything noticed. `-Profile` is an alias for `-ProfileName`, and the
+  binder did not record it under the parameter's own name, so the argument check
+  concluded there were no arguments. It now decides on the value, not on how the
+  binder recorded it
+- The menu refuses to start when there is no terminal attached, rather than
+  blocking on input that can never arrive
 - `DisablePocket` was doing nothing. It is still in Firefox 154's schema, so it
   raised no error, but the browser has no implementation for it at all, which is
   why `about:policies` never listed it. Removed. `FirefoxHome.Pocket` and
@@ -81,6 +90,12 @@ major, minor, or patch change in a configuration tool.
   the two DNS prefetch preferences, so `network.prefetch-next` is now set too
 
 ### Changed
+- The README described a profile that no longer existed: it omitted search
+  suggestions entirely, which is the most consequential setting in the project,
+  and still advertised Pocket, which was removed. `tools/check-drift.py` now
+  fails the build when the documentation stops describing what ships
+- Every CI job has a timeout, so a hang fails in minutes rather than sitting for
+  the six hour default
 - Shell scripts pass `shellcheck` with no findings at default severity. The
   first run surfaced 27, including `CDPATH= cd` reading as a typo and eighteen
   `A && B || C` chains in the test harness where a surprising `C` would have

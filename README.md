@@ -25,17 +25,49 @@ preference, so the change is still declared in one auditable file.
 
 ## What it turns off
 
-- Telemetry, Shield studies, and automatic crash-report submission
-- Sponsored shortcuts, stories, and address bar suggestions
-- Firefox Suggest online suggestions and its data upload
-- Pocket
-- What's New pages, feature and extension recommendations, onboarding nags
-- AI chatbot and on-device ML features
-- Link prefetching and speculative connections
-- The Windows default-browser agent
+**What you type in the address bar stays there.** Search suggestions are off, so
+your keystrokes are no longer sent to your search engine as you type. A password
+typed into the address bar by mistake never leaves your machine. The same goes
+for trending suggestions, which Firefox fetches the moment you click the bar
+before you have typed anything, for speculative connections opened while you
+type, and for single word hostname guessing.
 
-Enhanced Tracking Protection is turned up, not off, and left unlocked so you can
-still make a per-site exception.
+**Data collection**
+
+- Telemetry and usage data
+- Shield studies, and Nimbus rollouts that change features between updates
+- Automatic crash report submission
+- Firefox Suggest online results and its data upload
+- Visual search, which sends an image from the page to a search provider
+
+**Commercial content**
+
+- Sponsored shortcuts and sponsored stories on the new tab page
+- The recommended stories section, fetched from Mozilla on every new tab
+- Sponsored address bar results
+
+**Nagging**
+
+- What's New pages, feature and extension recommendations, More from Mozilla
+- The onboarding tour and the terms of use interstitial
+- Feedback and report-site menu commands
+- The Windows default browser agent
+
+**AI features**
+
+- Chatbot sidebar, link previews, smart tab groups, smart windows
+
+**Speculative network activity**
+
+- Link prefetching and DNS prefetching
+
+Two things are turned **on**: Global Privacy Control, a do-not-sell-my-data
+signal that some jurisdictions recognise in law, and Enhanced Tracking
+Protection with cryptominer, fingerprinter and email tracker blocking. Tracking
+protection is left unlocked so you can still make a per-site exception.
+
+The full list, with what each one costs, is in [docs/POLICIES.md](docs/POLICIES.md)
+or `--list`.
 
 ## What it deliberately leaves alone
 
